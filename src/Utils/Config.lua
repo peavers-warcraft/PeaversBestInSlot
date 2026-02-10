@@ -9,7 +9,7 @@ local Config = ConfigManager:New(addonName, {
 
     -- Content type preference
     contentType = "raid",           -- "raid" or "dungeon" (which BiS list to show)
-    dataSource = nil,               -- nil = all sources, "wowhead" for specific
+    dataSource = nil,               -- nil = all sources, "archon" for specific
 
     -- Source filtering (where items drop from)
     showRaidDrops = true,           -- Show items that drop from raids
