@@ -10,6 +10,7 @@
 
 ## X-Website: https://peavers.io
 ## X-Source-Code: https://github.com/peavers-warcraft/PeaversBestInSlot
+## X-Curse-Project-ID: 1459083
 
 ## Dependencies: PeaversBestInSlotData, PeaversCommons
 ## SavedVariables: PeaversBestInSlotDB
