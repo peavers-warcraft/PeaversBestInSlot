@@ -1,0 +1,22 @@
+## Interface: 120000, 120001
+
+## Title: |cff3abdf7Peavers|rBestInSlot
+## Notes: Shows Best in Slot gear information in item tooltips
+## Author: Peavers
+## Version: 1.0.0
+
+## IconTexture: Interface\AddOns\PeaversCommons\src\Media\Icon.tga
+## Category-enUS: Peavers
+
+## X-Website: https://peavers.io
+## X-Source-Code: https://github.com/peavers-warcraft/PeaversBestInSlot
+
+## Dependencies: PeaversBestInSlotData, PeaversCommons
+## SavedVariables: PeaversBestInSlotDB
+
+src\Utils\Config.lua
+src\Utils\ConfigUI.lua
+
+src\Core\TooltipHook.lua
+
+src\Main.lua
