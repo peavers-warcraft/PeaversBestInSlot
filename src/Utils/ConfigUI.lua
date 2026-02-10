@@ -48,6 +48,7 @@ function ConfigUI:CreateGeneralOptions(content, yPos, baseSpacing, sectionSpacin
 
     -- Content type dropdown
     local contentTypes = {
+        both = "Both (Raid & M+)",
         raid = "Raid BiS",
         dungeon = "Mythic+ BiS"
     }
@@ -55,7 +56,7 @@ function ConfigUI:CreateGeneralOptions(content, yPos, baseSpacing, sectionSpacin
     local contentContainer, contentDropdown = PeaversCommons.ConfigUIUtils.CreateDropdown(
         content, "PBSContentTypeDropdown",
         "Content Type", contentTypes,
-        contentTypes[PBS.Config.contentType] or "Raid BiS", 400,
+        contentTypes[PBS.Config.contentType] or "Both (Raid & M+)", 400,
         function(value)
             PBS.Config.contentType = value
             PBS.Config:Save()

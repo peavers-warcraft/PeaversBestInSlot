@@ -69,9 +69,7 @@ local function GetClassName(classID)
 end
 
 -- Format the BiS label based on priority and settings
-local function FormatBiSLabel(priority, contentType, compact)
-    local contentLabel = contentType == "raid" and "Raid" or "M+"
-
+local function FormatBiSLabel(priority, contentLabel, compact)
     if compact then
         if priority == 1 then
             return contentLabel .. " BiS"
@@ -85,6 +83,11 @@ local function FormatBiSLabel(priority, contentType, compact)
             return contentLabel .. " Alternative #" .. priority
         end
     end
+end
+
+-- Determine content label for an item (Raid or M+)
+local function GetContentLabel(item)
+    return item.sourceType == "raid" and "Raid" or "M+"
 end
 
 -- Check if an item's source type passes the filter
@@ -112,6 +115,64 @@ local function PassesSourceFilter(sourceType)
     return true
 end
 
+-- Get filtered BiS items for a specific content type and slot
+local function GetFilteredSlotItems(BiSData, slotID, contentType)
+    local allItems = BiSData.API.GetBiSForSlot(playerClassID, playerSpecID, slotID, contentType, PBS.Config.dataSource)
+    if not allItems or #allItems == 0 then return nil end
+
+    local items = {}
+    for _, item in ipairs(allItems) do
+        if PassesSourceFilter(item.sourceType) then
+            table.insert(items, item)
+        end
+    end
+
+    if #items == 0 then return nil end
+    return items
+end
+
+-- Add a small-font subtitle line to the tooltip
+local function AddSubtitleLine(tooltip, text, r, g, b)
+    tooltip:AddLine(text, r, g, b)
+    local lineNum = tooltip:NumLines()
+    local fontString = _G[tooltip:GetName() .. "TextLeft" .. lineNum]
+    if fontString then
+        fontString:SetFontObject(GameFontNormalSmall)
+    end
+end
+
+-- Render a single slot item line in the tooltip with source below
+local function RenderSlotItem(tooltip, item, contentLabel)
+    local color = item.priority == 1 and COLORS.BIS_PRIMARY or COLORS.BIS_ALT
+    local priorityText = ""
+    if PBS.Config.showPriority and item.priority > 1 and not contentLabel then
+        priorityText = " (Alt)"
+    end
+
+    -- Item name line
+    tooltip:AddLine(item.itemName .. priorityText, color.r, color.g, color.b)
+
+    -- Source subtitle below item name
+    local hasDropSource = item.dropSource and item.dropSource ~= ""
+
+    if contentLabel then
+        -- "Both" mode: show content label to distinguish items
+        if hasDropSource and PBS.Config.showDropSource then
+            AddSubtitleLine(tooltip, contentLabel .. " · " .. item.dropSource,
+                COLORS.BIS_OTHER.r, COLORS.BIS_OTHER.g, COLORS.BIS_OTHER.b)
+        else
+            AddSubtitleLine(tooltip, contentLabel,
+                COLORS.BIS_OTHER.r, COLORS.BIS_OTHER.g, COLORS.BIS_OTHER.b)
+        end
+    else
+        -- Single mode: show drop source if available
+        if hasDropSource and PBS.Config.showDropSource then
+            AddSubtitleLine(tooltip, item.dropSource,
+                COLORS.BIS_OTHER.r, COLORS.BIS_OTHER.g, COLORS.BIS_OTHER.b)
+        end
+    end
+end
+
 -- Add BiS info for a specific slot to the tooltip
 function TooltipHook:AddSlotBiSInfo(tooltip, slotID)
     if not PBS.Config.enabled then return end
@@ -128,76 +189,58 @@ function TooltipHook:AddSlotBiSInfo(tooltip, slotID)
         return
     end
 
-    -- Get BiS items for this slot
-    local allItems = BiSData.API.GetBiSForSlot(playerClassID, playerSpecID, slotID, PBS.Config.contentType, PBS.Config.dataSource)
+    if PBS.Config.contentType == "both" then
+        -- Both mode: show #1 item from each content type
+        local raidItems = GetFilteredSlotItems(BiSData, slotID, "raid")
+        local dungeonItems = GetFilteredSlotItems(BiSData, slotID, "dungeon")
 
-    if not allItems or #allItems == 0 then
-        Utils.Debug(PBS, "No BiS data for slot " .. tostring(slotID) .. " (class: " .. playerClassID .. ", spec: " .. playerSpecID .. ")")
-        return
-    end
-
-    -- Filter items based on source settings
-    local items = {}
-    for _, item in ipairs(allItems) do
-        if PassesSourceFilter(item.sourceType) then
-            table.insert(items, item)
-        end
-    end
-
-    if #items == 0 then
-        Utils.Debug(PBS, "No BiS items for slot " .. slotID .. " after source filtering")
-        return
-    end
-
-    Utils.Debug(PBS, "Adding BiS info for slot " .. slotID .. " - showing " .. #items .. " of " .. #allItems .. " items")
-
-    -- Add separator
-    tooltip:AddLine(" ")
-
-    -- Add header
-    local contentLabel = PBS.Config.contentType == "raid" and "Raid" or "M+"
-    tooltip:AddLine(
-        contentLabel .. " Best in Slot:",
-        COLORS.HEADER.r, COLORS.HEADER.g, COLORS.HEADER.b
-    )
-
-    -- Show BiS items (primary and alternatives)
-    for i, item in ipairs(items) do
-        if i > 3 then break end -- Limit to 3 items max
-
-        local color = item.priority == 1 and COLORS.BIS_PRIMARY or COLORS.BIS_ALT
-        local priorityText = ""
-        if PBS.Config.showPriority and item.priority > 1 then
-            priorityText = " (Alt #" .. item.priority .. ")"
+        if not raidItems and not dungeonItems then
+            Utils.Debug(PBS, "No BiS data for slot " .. tostring(slotID) .. " in either content type")
+            return
         end
 
-        -- Source type indicator
-        local sourceIndicator = ""
-        if item.sourceType then
-            local st = item.sourceType:lower()
-            if st == "raid" then
-                sourceIndicator = " [R]"
-            elseif st == "dungeon" then
-                sourceIndicator = " [M+]"
-            elseif st == "crafted" then
-                sourceIndicator = " [C]"
-            elseif st == "catalyst" then
-                sourceIndicator = " [Cat]"
-            end
-        end
-
-        -- Item name line with source indicator
+        tooltip:AddLine(" ")
         tooltip:AddLine(
-            item.itemName .. priorityText .. sourceIndicator,
-            color.r, color.g, color.b
+            "Best in Slot:",
+            COLORS.HEADER.r, COLORS.HEADER.g, COLORS.HEADER.b
         )
 
-        -- Drop source line (indented)
-        if PBS.Config.showDropSource and item.dropSource then
-            tooltip:AddLine(
-                "  " .. item.dropSource,
-                COLORS.VALUE.r, COLORS.VALUE.g, COLORS.VALUE.b
-            )
+        local raidTop = raidItems and raidItems[1]
+        local dungeonTop = dungeonItems and dungeonItems[1]
+
+        -- Deduplicate: same item in both lists, show once without content type
+        if raidTop and dungeonTop and raidTop.itemID == dungeonTop.itemID then
+            RenderSlotItem(tooltip, raidTop, nil)
+        else
+            if raidTop then
+                RenderSlotItem(tooltip, raidTop, GetContentLabel(raidTop))
+            end
+            if dungeonTop then
+                RenderSlotItem(tooltip, dungeonTop, GetContentLabel(dungeonTop))
+            end
+        end
+    else
+        -- Single mode: show up to 3 items for the selected content type
+        local items = GetFilteredSlotItems(BiSData, slotID, PBS.Config.contentType)
+
+        if not items then
+            Utils.Debug(PBS, "No BiS data for slot " .. tostring(slotID) .. " after source filtering")
+            return
+        end
+
+        Utils.Debug(PBS, "Adding BiS info for slot " .. slotID .. " - showing " .. #items .. " items")
+
+        tooltip:AddLine(" ")
+
+        local contentLabel = PBS.Config.contentType == "raid" and "Raid" or "M+"
+        tooltip:AddLine(
+            contentLabel .. " Best in Slot:",
+            COLORS.HEADER.r, COLORS.HEADER.g, COLORS.HEADER.b
+        )
+
+        for i, item in ipairs(items) do
+            if i > 3 then break end
+            RenderSlotItem(tooltip, item, nil)
         end
     end
 end
@@ -222,26 +265,34 @@ function TooltipHook:ProcessTooltipData(tooltip, tooltipData)
 
     Utils.Debug(PBS, "Processing tooltip for itemID: " .. tostring(itemID) .. ", slotID: " .. tostring(slotID))
 
-    -- If we're hovering over a character slot, show BiS for that slot
+    -- If we're hovering over a character slot, show BiS for that slot and stop
     if slotID then
         self:AddSlotBiSInfo(tooltip, slotID)
-        -- Don't return - also show if current item is BiS below
+        return
     end
 
     -- Otherwise, check if this item is BiS
     local bisInfo = BiSData.API.IsItemBiS(itemID, nil, PBS.Config.dataSource)
     if not bisInfo then return end
 
-    -- Find if item is BiS for current player spec
-    local forCurrentSpec = nil
+    -- Determine which content types to show
+    local contentTypesToShow
+    if PBS.Config.contentType == "both" then
+        contentTypesToShow = { raid = true, dungeon = true }
+    else
+        contentTypesToShow = { [PBS.Config.contentType] = true }
+    end
+
+    -- Find if item is BiS for current player spec (per content type)
+    local currentSpecMatches = {}  -- keyed by contentType
     local forOtherSpecs = {}
 
     for _, info in ipairs(bisInfo) do
-        -- Filter by configured content type
-        if info.contentType == PBS.Config.contentType then
+        if contentTypesToShow[info.contentType] then
             if info.classID == playerClassID and info.specID == playerSpecID then
-                if not forCurrentSpec or info.priority < forCurrentSpec.priority then
-                    forCurrentSpec = info
+                local existing = currentSpecMatches[info.contentType]
+                if not existing or info.priority < existing.priority then
+                    currentSpecMatches[info.contentType] = info
                 end
             else
                 table.insert(forOtherSpecs, info)
@@ -250,7 +301,8 @@ function TooltipHook:ProcessTooltipData(tooltip, tooltipData)
     end
 
     -- Only show if item is BiS for something
-    if not forCurrentSpec and #forOtherSpecs == 0 then
+    local hasCurrentSpec = next(currentSpecMatches) ~= nil
+    if not hasCurrentSpec and #forOtherSpecs == 0 then
         return
     end
 
@@ -258,22 +310,40 @@ function TooltipHook:ProcessTooltipData(tooltip, tooltipData)
     tooltip:AddLine(" ")
 
     -- Show BiS status for current spec
-    if forCurrentSpec then
-        local bisLabel = FormatBiSLabel(forCurrentSpec.priority, forCurrentSpec.contentType, PBS.Config.compactMode)
-        local color = forCurrentSpec.priority == 1 and COLORS.BIS_PRIMARY or COLORS.BIS_ALT
+    if hasCurrentSpec then
+        local orderedTypes = { "raid", "dungeon" }
+        local raidMatch = currentSpecMatches["raid"]
+        local dungeonMatch = currentSpecMatches["dungeon"]
 
-        if PBS.Config.showDropSource and forCurrentSpec.dropSource then
-            tooltip:AddDoubleLine(
-                bisLabel,
-                forCurrentSpec.dropSource,
-                color.r, color.g, color.b,
-                COLORS.VALUE.r, COLORS.VALUE.g, COLORS.VALUE.b
-            )
+        -- Deduplicate: same item in both content types (same priority, no drop source)
+        local isDedup = raidMatch and dungeonMatch
+            and (not raidMatch.dropSource or raidMatch.dropSource == "")
+            and (not dungeonMatch.dropSource or dungeonMatch.dropSource == "")
+
+        if isDedup then
+            -- Same item in both - show once as generic "Best in Slot"
+            local bestPriority = math.min(raidMatch.priority, dungeonMatch.priority)
+            local bisLabel = FormatBiSLabel(bestPriority, "Raid & M+", PBS.Config.compactMode)
+            local color = bestPriority == 1 and COLORS.BIS_PRIMARY or COLORS.BIS_ALT
+            tooltip:AddLine(bisLabel, color.r, color.g, color.b)
         else
-            tooltip:AddLine(
-                bisLabel,
-                color.r, color.g, color.b
-            )
+            for _, ct in ipairs(orderedTypes) do
+                local match = currentSpecMatches[ct]
+                if match then
+                    local contentLabel = match.contentType == "raid" and "Raid" or "M+"
+                    local bisLabel = FormatBiSLabel(match.priority, contentLabel, PBS.Config.compactMode)
+                    local color = match.priority == 1 and COLORS.BIS_PRIMARY or COLORS.BIS_ALT
+
+                    tooltip:AddLine(bisLabel, color.r, color.g, color.b)
+
+                    -- Source subtitle
+                    local hasDropSource = match.dropSource and match.dropSource ~= ""
+                    if hasDropSource and PBS.Config.showDropSource then
+                        AddSubtitleLine(tooltip, match.dropSource,
+                            COLORS.BIS_OTHER.r, COLORS.BIS_OTHER.g, COLORS.BIS_OTHER.b)
+                    end
+                end
+            end
         end
     end
 

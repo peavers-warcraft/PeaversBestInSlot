@@ -8,7 +8,7 @@ local Config = ConfigManager:New(addonName, {
     debugMode = false,
 
     -- Content type preference
-    contentType = "raid",           -- "raid" or "dungeon" (which BiS list to show)
+    contentType = "both",           -- "both", "raid", or "dungeon" (which BiS list to show)
     dataSource = nil,               -- nil = all sources, "archon" for specific
 
     -- Source filtering (where items drop from)
