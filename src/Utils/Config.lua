@@ -11,11 +11,6 @@ local Config = ConfigManager:New(addonName, {
     contentType = "both",           -- "both", "raid", or "dungeon" (which BiS list to show)
     dataSource = nil,               -- nil = all sources, "archon" for specific
 
-    -- Source filtering (where items drop from)
-    showRaidDrops = true,           -- Show items that drop from raids
-    showDungeonDrops = true,        -- Show items that drop from M+ dungeons
-    showCraftedItems = true,        -- Show crafted/catalyst items
-
     -- Display options
     showOtherSpecs = false,         -- Show if item is BiS for other specs
     maxOtherSpecs = 3,              -- Max other specs to show

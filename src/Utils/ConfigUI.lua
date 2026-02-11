@@ -18,7 +18,6 @@ function ConfigUI:InitializeOptions()
     local sectionSpacing = panel.sectionSpacing
 
     yPos = self:CreateGeneralOptions(content, yPos, baseSpacing, sectionSpacing)
-    yPos = self:CreateSourceFilterOptions(content, yPos, baseSpacing, sectionSpacing)
     yPos = self:CreateDisplayOptions(content, yPos, baseSpacing, sectionSpacing)
     yPos = self:CreateDataOptions(content, yPos, baseSpacing, sectionSpacing)
 
@@ -46,93 +45,48 @@ function ConfigUI:CreateGeneralOptions(content, yPos, baseSpacing, sectionSpacin
     )
     yPos = newY - 8
 
-    -- Content type dropdown
-    local contentTypes = {
-        both = "Both (Raid & M+)",
-        raid = "Raid BiS",
-        dungeon = "Mythic+ BiS"
-    }
+    -- BiS list checkboxes
+    local showRaid = PBS.Config.contentType == "both" or PBS.Config.contentType == "raid"
+    local showDungeon = PBS.Config.contentType == "both" or PBS.Config.contentType == "dungeon"
 
-    local contentContainer, contentDropdown = PeaversCommons.ConfigUIUtils.CreateDropdown(
-        content, "PBSContentTypeDropdown",
-        "Content Type", contentTypes,
-        contentTypes[PBS.Config.contentType] or "Both (Raid & M+)", 400,
-        function(value)
-            PBS.Config.contentType = value
-            PBS.Config:Save()
+    local raidCheckbox, dungeonCheckbox
+
+    local function UpdateContentType()
+        local raidChecked = raidCheckbox:GetChecked()
+        local dungeonChecked = dungeonCheckbox:GetChecked()
+
+        if raidChecked and dungeonChecked then
+            PBS.Config.contentType = "both"
+        elseif raidChecked then
+            PBS.Config.contentType = "raid"
+        elseif dungeonChecked then
+            PBS.Config.contentType = "dungeon"
+        else
+            -- Prevent unchecking both - re-check the one that was just unchecked
+            PBS.Config.contentType = "both"
+            raidCheckbox:SetChecked(true)
+            dungeonCheckbox:SetChecked(true)
         end
-    )
-    contentContainer:SetPoint("TOPLEFT", controlIndent, yPos)
-    yPos = yPos - 65
+        PBS.Config:Save()
+    end
 
-    local _, newY = PeaversCommons.ConfigUIUtils.CreateCheckbox(
+    raidCheckbox, newY = PeaversCommons.ConfigUIUtils.CreateCheckbox(
         content,
-        "PBSDebugCheckbox",
-        "Enable debug messages",
+        "PBSShowRaidBiSCheckbox",
+        "Show best in slot items for raid content",
         controlIndent, yPos,
-        PBS.Config.debugMode,
-        function(checked)
-            PBS.Config.debugMode = checked
-            PBS.Config.DEBUG_ENABLED = checked
-            PBS.Config:Save()
-        end
-    )
-    yPos = newY - 15
-
-    return yPos
-end
-
-function ConfigUI:CreateSourceFilterOptions(content, yPos, baseSpacing, sectionSpacing)
-    local controlIndent = baseSpacing + 15
-
-    local _, newY = PeaversCommons.ConfigUIUtils.CreateSeparator(content, baseSpacing, yPos)
-    yPos = newY - 15
-
-    local header, newY = PeaversCommons.ConfigUIUtils.CreateSectionHeader(content, "Item Source Filter", baseSpacing, yPos)
-    yPos = newY - 5
-
-    local infoText = content:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-    infoText:SetPoint("TOPLEFT", controlIndent, yPos)
-    infoText:SetText("Filter BiS items by where they drop from:")
-    infoText:SetTextColor(0.7, 0.7, 0.7)
-    yPos = yPos - 18
-
-    local _, newY = PeaversCommons.ConfigUIUtils.CreateCheckbox(
-        content,
-        "PBSShowRaidDropsCheckbox",
-        "Show items from Raids",
-        controlIndent, yPos,
-        PBS.Config.showRaidDrops,
-        function(checked)
-            PBS.Config.showRaidDrops = checked
-            PBS.Config:Save()
-        end
+        showRaid,
+        UpdateContentType
     )
     yPos = newY - 8
 
-    local _, newY = PeaversCommons.ConfigUIUtils.CreateCheckbox(
+    dungeonCheckbox, newY = PeaversCommons.ConfigUIUtils.CreateCheckbox(
         content,
-        "PBSShowDungeonDropsCheckbox",
-        "Show items from Mythic+ Dungeons",
+        "PBSShowDungeonBiSCheckbox",
+        "Show best in slot items for mythic+ content",
         controlIndent, yPos,
-        PBS.Config.showDungeonDrops,
-        function(checked)
-            PBS.Config.showDungeonDrops = checked
-            PBS.Config:Save()
-        end
-    )
-    yPos = newY - 8
-
-    local _, newY = PeaversCommons.ConfigUIUtils.CreateCheckbox(
-        content,
-        "PBSShowCraftedCheckbox",
-        "Show Crafted / Catalyst items",
-        controlIndent, yPos,
-        PBS.Config.showCraftedItems,
-        function(checked)
-            PBS.Config.showCraftedItems = checked
-            PBS.Config:Save()
-        end
+        showDungeon,
+        UpdateContentType
     )
     yPos = newY - 15
 

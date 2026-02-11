@@ -90,31 +90,6 @@ local function GetContentLabel(item)
     return item.sourceType == "raid" and "Raid" or "M+"
 end
 
--- Check if an item's source type passes the filter
-local function PassesSourceFilter(sourceType)
-    if not sourceType then return true end
-
-    local st = sourceType:lower()
-
-    -- Raid drops
-    if st == "raid" then
-        return PBS.Config.showRaidDrops
-    end
-
-    -- Dungeon drops
-    if st == "dungeon" then
-        return PBS.Config.showDungeonDrops
-    end
-
-    -- Crafted, catalyst, and other sources
-    if st == "crafted" or st == "catalyst" or st == "world" or st == "pvp" then
-        return PBS.Config.showCraftedItems
-    end
-
-    -- Unknown source types - show by default
-    return true
-end
-
 -- Normalize paired slots (second ring/trinket -> first) since BiS data only uses slots 11 and 13
 local function NormalizeSlotID(slotID)
     if slotID == 12 then return 11 end  -- Finger1 -> Finger0
@@ -122,19 +97,10 @@ local function NormalizeSlotID(slotID)
     return slotID
 end
 
--- Get filtered BiS items for a specific content type and slot
-local function GetFilteredSlotItems(BiSData, slotID, contentType)
-    local allItems = BiSData.API.GetBiSForSlot(playerClassID, playerSpecID, NormalizeSlotID(slotID), contentType, PBS.Config.dataSource)
-    if not allItems or #allItems == 0 then return nil end
-
-    local items = {}
-    for _, item in ipairs(allItems) do
-        if PassesSourceFilter(item.sourceType) then
-            table.insert(items, item)
-        end
-    end
-
-    if #items == 0 then return nil end
+-- Get BiS items for a specific content type and slot
+local function GetSlotItems(BiSData, slotID, contentType)
+    local items = BiSData.API.GetBiSForSlot(playerClassID, playerSpecID, NormalizeSlotID(slotID), contentType, PBS.Config.dataSource)
+    if not items or #items == 0 then return nil end
     return items
 end
 
@@ -230,8 +196,8 @@ function TooltipHook:AddSlotBiSInfo(tooltip, slotID)
 
     if PBS.Config.contentType == "both" then
         -- Both mode: show #1 item from each content type
-        local raidItems = GetFilteredSlotItems(BiSData, slotID, "raid")
-        local dungeonItems = GetFilteredSlotItems(BiSData, slotID, "dungeon")
+        local raidItems = GetSlotItems(BiSData, slotID, "raid")
+        local dungeonItems = GetSlotItems(BiSData, slotID, "dungeon")
 
         if not raidItems and not dungeonItems then
             Utils.Debug(PBS, "No BiS data for slot " .. tostring(slotID) .. " in either content type")
@@ -260,10 +226,10 @@ function TooltipHook:AddSlotBiSInfo(tooltip, slotID)
         end
     else
         -- Single mode: show up to 3 items for the selected content type
-        local items = GetFilteredSlotItems(BiSData, slotID, PBS.Config.contentType)
+        local items = GetSlotItems(BiSData, slotID, PBS.Config.contentType)
 
         if not items then
-            Utils.Debug(PBS, "No BiS data for slot " .. tostring(slotID) .. " after source filtering")
+            Utils.Debug(PBS, "No BiS data for slot " .. tostring(slotID))
             return
         end
 
@@ -494,8 +460,6 @@ function TooltipHook:Initialize()
 
     -- Hook character panel slots
     self:HookCharacterSlots()
-
-    Utils.Print(PBS, "Tooltip hooks initialized - classID: " .. tostring(playerClassID) .. ", specID: " .. tostring(playerSpecID))
 end
 
 return TooltipHook
