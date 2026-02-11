@@ -115,9 +115,16 @@ local function PassesSourceFilter(sourceType)
     return true
 end
 
+-- Normalize paired slots (second ring/trinket -> first) since BiS data only uses slots 11 and 13
+local function NormalizeSlotID(slotID)
+    if slotID == 12 then return 11 end  -- Finger1 -> Finger0
+    if slotID == 14 then return 13 end  -- Trinket1 -> Trinket0
+    return slotID
+end
+
 -- Get filtered BiS items for a specific content type and slot
 local function GetFilteredSlotItems(BiSData, slotID, contentType)
-    local allItems = BiSData.API.GetBiSForSlot(playerClassID, playerSpecID, slotID, contentType, PBS.Config.dataSource)
+    local allItems = BiSData.API.GetBiSForSlot(playerClassID, playerSpecID, NormalizeSlotID(slotID), contentType, PBS.Config.dataSource)
     if not allItems or #allItems == 0 then return nil end
 
     local items = {}
@@ -131,14 +138,44 @@ local function GetFilteredSlotItems(BiSData, slotID, contentType)
     return items
 end
 
--- Add a small-font subtitle line to the tooltip
+-- Set consistent font on the last added tooltip line (left side)
+local function SetLastLineFont(tooltip, fontObject)
+    local lineNum = tooltip:NumLines()
+    local leftText = _G[tooltip:GetName() .. "TextLeft" .. lineNum]
+    if leftText then
+        leftText:SetFontObject(fontObject)
+    end
+end
+
+-- Set consistent font on the last added double line (both sides)
+local function SetLastDoubleLineFont(tooltip, fontObject)
+    local lineNum = tooltip:NumLines()
+    local leftText = _G[tooltip:GetName() .. "TextLeft" .. lineNum]
+    local rightText = _G[tooltip:GetName() .. "TextRight" .. lineNum]
+    if leftText then
+        leftText:SetFontObject(fontObject)
+    end
+    if rightText then
+        rightText:SetFontObject(fontObject)
+    end
+end
+
+-- Add a standard tooltip line with consistent font
+local function AddTooltipLine(tooltip, text, r, g, b)
+    tooltip:AddLine(text, r, g, b)
+    SetLastLineFont(tooltip, GameFontNormal)
+end
+
+-- Add a small-font subtitle line (used for location/source)
 local function AddSubtitleLine(tooltip, text, r, g, b)
     tooltip:AddLine(text, r, g, b)
-    local lineNum = tooltip:NumLines()
-    local fontString = _G[tooltip:GetName() .. "TextLeft" .. lineNum]
-    if fontString then
-        fontString:SetFontObject(GameFontNormalSmall)
-    end
+    SetLastLineFont(tooltip, GameFontNormalSmall)
+end
+
+-- Add a standard double line with consistent font
+local function AddTooltipDoubleLine(tooltip, leftText, rightText, lr, lg, lb, rr, rg, rb)
+    tooltip:AddDoubleLine(leftText, rightText, lr, lg, lb, rr, rg, rb)
+    SetLastDoubleLineFont(tooltip, GameFontNormal)
 end
 
 -- Render a single slot item line in the tooltip with source below
@@ -150,25 +187,27 @@ local function RenderSlotItem(tooltip, item, contentLabel)
     end
 
     -- Item name line
-    tooltip:AddLine(item.itemName .. priorityText, color.r, color.g, color.b)
+    AddTooltipLine(tooltip, item.itemName .. priorityText, color.r, color.g, color.b)
 
-    -- Source subtitle below item name
-    local hasDropSource = item.dropSource and item.dropSource ~= ""
+    -- Location subtitle (only when showDropSource is enabled)
+    if PBS.Config.showDropSource then
+        local hasLocation = item.dropSource and item.dropSource ~= ""
 
-    if contentLabel then
-        -- "Both" mode: show content label to distinguish items
-        if hasDropSource and PBS.Config.showDropSource then
-            AddSubtitleLine(tooltip, contentLabel .. " · " .. item.dropSource,
-                COLORS.BIS_OTHER.r, COLORS.BIS_OTHER.g, COLORS.BIS_OTHER.b)
+        if contentLabel then
+            -- "Both" mode
+            if hasLocation then
+                AddSubtitleLine(tooltip, contentLabel .. " · " .. item.dropSource,
+                    COLORS.BIS_OTHER.r, COLORS.BIS_OTHER.g, COLORS.BIS_OTHER.b)
+            else
+                AddSubtitleLine(tooltip, contentLabel,
+                    COLORS.BIS_OTHER.r, COLORS.BIS_OTHER.g, COLORS.BIS_OTHER.b)
+            end
         else
-            AddSubtitleLine(tooltip, contentLabel,
-                COLORS.BIS_OTHER.r, COLORS.BIS_OTHER.g, COLORS.BIS_OTHER.b)
-        end
-    else
-        -- Single mode: show drop source if available
-        if hasDropSource and PBS.Config.showDropSource then
-            AddSubtitleLine(tooltip, item.dropSource,
-                COLORS.BIS_OTHER.r, COLORS.BIS_OTHER.g, COLORS.BIS_OTHER.b)
+            -- Single mode: only show if we have a real location
+            if hasLocation then
+                AddSubtitleLine(tooltip, item.dropSource,
+                    COLORS.BIS_OTHER.r, COLORS.BIS_OTHER.g, COLORS.BIS_OTHER.b)
+            end
         end
     end
 end
@@ -200,7 +239,7 @@ function TooltipHook:AddSlotBiSInfo(tooltip, slotID)
         end
 
         tooltip:AddLine(" ")
-        tooltip:AddLine(
+        AddTooltipLine(tooltip,
             "Best in Slot:",
             COLORS.HEADER.r, COLORS.HEADER.g, COLORS.HEADER.b
         )
@@ -233,7 +272,7 @@ function TooltipHook:AddSlotBiSInfo(tooltip, slotID)
         tooltip:AddLine(" ")
 
         local contentLabel = PBS.Config.contentType == "raid" and "Raid" or "M+"
-        tooltip:AddLine(
+        AddTooltipLine(tooltip,
             contentLabel .. " Best in Slot:",
             COLORS.HEADER.r, COLORS.HEADER.g, COLORS.HEADER.b
         )
@@ -315,17 +354,21 @@ function TooltipHook:ProcessTooltipData(tooltip, tooltipData)
         local raidMatch = currentSpecMatches["raid"]
         local dungeonMatch = currentSpecMatches["dungeon"]
 
-        -- Deduplicate: same item in both content types (same priority, no drop source)
-        local isDedup = raidMatch and dungeonMatch
-            and (not raidMatch.dropSource or raidMatch.dropSource == "")
-            and (not dungeonMatch.dropSource or dungeonMatch.dropSource == "")
+        -- Deduplicate: same item appears in both content types
+        local isDedup = raidMatch and dungeonMatch and raidMatch.itemID == dungeonMatch.itemID
 
         if isDedup then
             -- Same item in both - show once as generic "Best in Slot"
             local bestPriority = math.min(raidMatch.priority, dungeonMatch.priority)
             local bisLabel = FormatBiSLabel(bestPriority, "Raid & M+", PBS.Config.compactMode)
             local color = bestPriority == 1 and COLORS.BIS_PRIMARY or COLORS.BIS_ALT
-            tooltip:AddLine(bisLabel, color.r, color.g, color.b)
+            AddTooltipLine(tooltip, bisLabel, color.r, color.g, color.b)
+
+            -- Location subtitle if available
+            if PBS.Config.showDropSource and raidMatch.dropSource and raidMatch.dropSource ~= "" then
+                AddSubtitleLine(tooltip, raidMatch.dropSource,
+                    COLORS.BIS_OTHER.r, COLORS.BIS_OTHER.g, COLORS.BIS_OTHER.b)
+            end
         else
             for _, ct in ipairs(orderedTypes) do
                 local match = currentSpecMatches[ct]
@@ -334,11 +377,10 @@ function TooltipHook:ProcessTooltipData(tooltip, tooltipData)
                     local bisLabel = FormatBiSLabel(match.priority, contentLabel, PBS.Config.compactMode)
                     local color = match.priority == 1 and COLORS.BIS_PRIMARY or COLORS.BIS_ALT
 
-                    tooltip:AddLine(bisLabel, color.r, color.g, color.b)
+                    AddTooltipLine(tooltip, bisLabel, color.r, color.g, color.b)
 
-                    -- Source subtitle
-                    local hasDropSource = match.dropSource and match.dropSource ~= ""
-                    if hasDropSource and PBS.Config.showDropSource then
+                    -- Location subtitle if available
+                    if PBS.Config.showDropSource and match.dropSource and match.dropSource ~= "" then
                         AddSubtitleLine(tooltip, match.dropSource,
                             COLORS.BIS_OTHER.r, COLORS.BIS_OTHER.g, COLORS.BIS_OTHER.b)
                     end
@@ -367,7 +409,7 @@ function TooltipHook:ProcessTooltipData(tooltip, tooltipData)
                 local label = PBS.Config.compactMode and "Also BiS:" or "Also BiS for:"
                 local specText = specName .. " " .. className
 
-                tooltip:AddDoubleLine(
+                AddTooltipDoubleLine(tooltip,
                     label,
                     specText,
                     COLORS.BIS_OTHER.r, COLORS.BIS_OTHER.g, COLORS.BIS_OTHER.b,
