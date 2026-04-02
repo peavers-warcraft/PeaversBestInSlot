@@ -210,8 +210,27 @@ function ConfigUI:Initialize()
 end
 
 function ConfigUI:Open()
-    if Settings then
-        Settings.OpenToCategory(addonName)
+    local addon = _G[addonName]
+
+    if Settings and Settings.OpenToCategory and addon then
+        if addon.directSettingsCategoryID then
+            local success = pcall(Settings.OpenToCategory, addon.directSettingsCategoryID)
+            if success then return end
+        end
+
+        if addon.directCategoryID then
+            local success = pcall(Settings.OpenToCategory, addon.directCategoryID)
+            if success then return end
+        end
+
+        if addon.mainCategory then
+            local success = pcall(Settings.OpenToCategory, addon.mainCategory)
+            if success then return end
+        end
+    end
+
+    if SettingsPanel then
+        SettingsPanel:Open()
     end
 end
 
