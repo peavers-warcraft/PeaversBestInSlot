@@ -73,6 +73,20 @@ PeaversCommons.Events:Init(addonName, function()
             }
         )
     end)
+    -- Register with PeaversConfig registry
+    if PeaversCommons.ConfigRegistry then
+        PeaversCommons.ConfigRegistry:Register({
+            name = "PeaversBestInSlot",
+            displayName = "Best In Slot",
+            description = "BiS gear information in item tooltips",
+            addonRef = PBS,
+            config = PBS.Config,
+            buildPanel = function(parentFrame)
+                return PBS.ConfigUI:BuildIntoFrame(parentFrame)
+            end,
+            order = 8,
+        })
+    end
 end, {
     suppressAnnouncement = true
 })
