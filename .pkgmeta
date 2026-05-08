@@ -2,6 +2,7 @@ package-as: PeaversBestInSlot
 
 required-dependencies:
   - peaverscommons
+  - peaversconfig
   - peaversbestinslotdata
 
 ignore:
