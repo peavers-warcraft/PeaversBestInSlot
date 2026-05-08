@@ -12,7 +12,7 @@
 ## X-Source-Code: https://github.com/peavers-warcraft/PeaversBestInSlot
 ## X-Curse-Project-ID: 1459083
 
-## Dependencies: PeaversBestInSlotData, PeaversCommons
+## Dependencies: PeaversBestInSlotData, PeaversCommons, PeaversConfig
 ## SavedVariables: PeaversBestInSlotDB
 
 Changelog.lua
