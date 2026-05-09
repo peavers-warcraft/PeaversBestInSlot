@@ -205,11 +205,31 @@ function ConfigUI:CreateDataOptions(content, yPos, baseSpacing, sectionSpacing)
     return yPos
 end
 
+function ConfigUI:BuildIntoFrame(parentFrame)
+    local yPos = 0
+    local baseSpacing = 25
+    local sectionSpacing = 40
+
+    yPos = self:CreateGeneralOptions(parentFrame, yPos, baseSpacing, sectionSpacing)
+    yPos = self:CreateDisplayOptions(parentFrame, yPos, baseSpacing, sectionSpacing)
+    yPos = self:CreateDataOptions(parentFrame, yPos, baseSpacing, sectionSpacing)
+
+    parentFrame:SetHeight(math.abs(yPos) + 50)
+    return parentFrame
+end
+
 function ConfigUI:Initialize()
     self.panel = self:InitializeOptions()
 end
 
 function ConfigUI:Open()
+    -- Prefer PeaversConfig if available
+    if _G.PeaversConfig and _G.PeaversConfig.MainFrame then
+        _G.PeaversConfig.MainFrame:Show()
+        _G.PeaversConfig.MainFrame:SelectAddon("PeaversBestInSlot")
+        return
+    end
+
     local addon = _G[addonName]
 
     if Settings and Settings.OpenToCategory and addon then
@@ -220,11 +240,6 @@ function ConfigUI:Open()
 
         if addon.directCategoryID then
             local success = pcall(Settings.OpenToCategory, addon.directCategoryID)
-            if success then return end
-        end
-
-        if addon.mainCategory then
-            local success = pcall(Settings.OpenToCategory, addon.mainCategory)
             if success then return end
         end
     end

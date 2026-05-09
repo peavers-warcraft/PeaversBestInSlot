@@ -58,21 +58,23 @@ PeaversCommons.Events:Init(addonName, function()
     PBS.ConfigUI:Initialize()
     PBS.TooltipHook:Initialize()
 
-    -- Create settings pages
     C_Timer.After(0.5, function()
-        PeaversCommons.SettingsUI:CreateSettingsPages(
-            PBS,
-            "PeaversBestInSlot",
-            "Peavers Best In Slot",
-            "Shows Best in Slot gear information in item tooltips.",
-            {
-                "/pbs - Open configuration",
-                "/pbs raid - Show raid items only",
-                "/pbs dungeon - Show mythic+ items only",
-                "/pbs both - Show all items"
-            }
-        )
+        PeaversCommons.SettingsUI:CreateRedirectPage(PBS, "PeaversBestInSlot", "Peavers Best In Slot")
     end)
+    -- Register with PeaversConfig registry
+    if PeaversCommons.ConfigRegistry then
+        PeaversCommons.ConfigRegistry:Register({
+            name = "PeaversBestInSlot",
+            displayName = "Best In Slot",
+            description = "BiS gear information in item tooltips",
+            addonRef = PBS,
+            config = PBS.Config,
+            buildPanel = function(parentFrame)
+                return PBS.ConfigUI:BuildIntoFrame(parentFrame)
+            end,
+            order = 8,
+        })
+    end
 end, {
     suppressAnnouncement = true
 })

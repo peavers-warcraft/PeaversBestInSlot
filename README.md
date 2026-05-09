@@ -18,6 +18,7 @@ A World of Warcraft addon that shows Best in Slot gear information directly in i
 1. Download from [CurseForge](https://www.curseforge.com/wow/addons/peaversbestinslot)
 2. Also install [PeaversBestInSlotData](https://www.curseforge.com/wow/addons/peaversbestinslotdata) (required)
 3. Also install [PeaversCommons](https://www.curseforge.com/wow/addons/peaverscommons) (required)
+4. Also install [PeaversConfig](https://www.curseforge.com/wow/addons/peaversconfig) (required)
 
 ## Usage
 
@@ -49,3 +50,4 @@ When you hover over an item, you'll see:
 
 - [PeaversBestInSlotData](https://github.com/peavers-warcraft/PeaversBestInSlotData) - Required data library
 - [PeaversCommons](https://github.com/peavers-warcraft/PeaversCommons) - Required core library
+- [PeaversConfig](https://www.curseforge.com/wow/addons/peaversconfig) (required)
