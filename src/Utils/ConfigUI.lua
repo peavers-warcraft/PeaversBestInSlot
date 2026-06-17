@@ -4,7 +4,6 @@ local ConfigUI = {}
 PBS.ConfigUI = ConfigUI
 
 local PeaversCommons = _G.PeaversCommons
-local Utils = PeaversCommons.Utils
 
 function ConfigUI:InitializeOptions()
     local panel = PeaversCommons.ConfigUIUtils.CreateSettingsPanel(
@@ -29,10 +28,10 @@ end
 function ConfigUI:CreateGeneralOptions(content, yPos, baseSpacing, sectionSpacing)
     local controlIndent = baseSpacing + 15
 
-    local header, newY = PeaversCommons.ConfigUIUtils.CreateSectionHeader(content, "General Settings", baseSpacing, yPos)
+    local _, newY = PeaversCommons.ConfigUIUtils.CreateSectionHeader(content, "General Settings", baseSpacing, yPos)
     yPos = newY - 10
 
-    local _, newY = PeaversCommons.ConfigUIUtils.CreateCheckbox(
+    _, newY = PeaversCommons.ConfigUIUtils.CreateCheckbox(
         content,
         "PBSEnabledCheckbox",
         "Enable BiS tooltips",
@@ -99,10 +98,10 @@ function ConfigUI:CreateDisplayOptions(content, yPos, baseSpacing, sectionSpacin
     local _, newY = PeaversCommons.ConfigUIUtils.CreateSeparator(content, baseSpacing, yPos)
     yPos = newY - 15
 
-    local header, newY = PeaversCommons.ConfigUIUtils.CreateSectionHeader(content, "Display Options", baseSpacing, yPos)
+    _, newY = PeaversCommons.ConfigUIUtils.CreateSectionHeader(content, "Display Options", baseSpacing, yPos)
     yPos = newY - 10
 
-    local _, newY = PeaversCommons.ConfigUIUtils.CreateCheckbox(
+    _, newY = PeaversCommons.ConfigUIUtils.CreateCheckbox(
         content,
         "PBSShowDropSourceCheckbox",
         "Show drop source (boss/dungeon name)",
@@ -115,7 +114,7 @@ function ConfigUI:CreateDisplayOptions(content, yPos, baseSpacing, sectionSpacin
     )
     yPos = newY - 8
 
-    local _, newY = PeaversCommons.ConfigUIUtils.CreateCheckbox(
+    _, newY = PeaversCommons.ConfigUIUtils.CreateCheckbox(
         content,
         "PBSShowPriorityCheckbox",
         "Show priority indicator (BiS vs Alternative)",
@@ -128,7 +127,7 @@ function ConfigUI:CreateDisplayOptions(content, yPos, baseSpacing, sectionSpacin
     )
     yPos = newY - 8
 
-    local _, newY = PeaversCommons.ConfigUIUtils.CreateCheckbox(
+    _, newY = PeaversCommons.ConfigUIUtils.CreateCheckbox(
         content,
         "PBSShowOtherSpecsCheckbox",
         "Show if item is BiS for other specs",
@@ -141,7 +140,7 @@ function ConfigUI:CreateDisplayOptions(content, yPos, baseSpacing, sectionSpacin
     )
     yPos = newY - 8
 
-    local _, newY = PeaversCommons.ConfigUIUtils.CreateCheckbox(
+    _, newY = PeaversCommons.ConfigUIUtils.CreateCheckbox(
         content,
         "PBSCompactModeCheckbox",
         "Compact mode (shorter text)",
@@ -163,7 +162,7 @@ function ConfigUI:CreateDataOptions(content, yPos, baseSpacing, sectionSpacing)
     local _, newY = PeaversCommons.ConfigUIUtils.CreateSeparator(content, baseSpacing, yPos)
     yPos = newY - 15
 
-    local header, newY = PeaversCommons.ConfigUIUtils.CreateSectionHeader(content, "Data Source", baseSpacing, yPos)
+    _, newY = PeaversCommons.ConfigUIUtils.CreateSectionHeader(content, "Data Source", baseSpacing, yPos)
     yPos = newY - 10
 
     -- Check if PeaversBestInSlotData is available

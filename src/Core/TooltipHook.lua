@@ -396,11 +396,11 @@ function TooltipHook:HookCharacterSlots()
         if slotID ~= 4 then -- Skip shirt slot
             local slotFrame = _G[slotName]
             if slotFrame then
-                slotFrame:HookScript("OnEnter", function(self)
+                slotFrame:HookScript("OnEnter", function(_)
                     currentHoveredSlotID = slotID
                 end)
 
-                slotFrame:HookScript("OnLeave", function(self)
+                slotFrame:HookScript("OnLeave", function(_)
                     currentHoveredSlotID = nil
                 end)
 
@@ -423,7 +423,7 @@ function TooltipHook:Initialize()
     local eventFrame = CreateFrame("Frame")
     eventFrame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
     eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-    eventFrame:SetScript("OnEvent", function(self, event, ...)
+    eventFrame:SetScript("OnEvent", function(_, event, ...)
         UpdatePlayerInfo()
     end)
 
@@ -444,12 +444,12 @@ function TooltipHook:Initialize()
 
         for _, tooltip in ipairs(tooltips) do
             if tooltip and tooltip.HookScript then
-                tooltip:HookScript("OnTooltipSetItem", function(self)
-                    local _, itemLink = self:GetItem()
+                tooltip:HookScript("OnTooltipSetItem", function(tip)
+                    local _, itemLink = tip:GetItem()
                     if itemLink then
                         local itemID = tonumber(itemLink:match("item:(%d+)"))
                         if itemID then
-                            TooltipHook:ProcessTooltipData(self, {id = itemID})
+                            TooltipHook:ProcessTooltipData(tip, {id = itemID})
                         end
                     end
                 end)
