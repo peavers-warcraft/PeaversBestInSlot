@@ -1,6 +1,6 @@
 # PeaversBestInSlot
 
-[![AddonSentry](https://api.addonsentry.io/api/public/repos/peavers-warcraft/PeaversBestInSlot/badge.svg)](https://addonsentry.io/dashboard/peavers-warcraft/PeaversBestInSlot)
+[![AddonSentry](https://addonsentry.io/api/public/repos/peavers-warcraft/PeaversBestInSlot/badge.svg)](https://addonsentry.io/dashboard/peavers-warcraft/PeaversBestInSlot)
 
 A World of Warcraft addon that displays Best-in-Slot item information in tooltips, sourced from wowcompare.io.
 
