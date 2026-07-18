@@ -69,9 +69,7 @@ PeaversCommons.Events:Init(addonName, function()
             description = "BiS gear information in item tooltips",
             addonRef = PBS,
             config = PBS.Config,
-            buildPanel = function(parentFrame)
-                return PBS.ConfigUI:BuildIntoFrame(parentFrame)
-            end,
+            pages = PBS.ConfigUI:GetPages(),
             order = 8,
         })
     end

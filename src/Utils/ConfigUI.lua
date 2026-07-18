@@ -4,50 +4,46 @@ local ConfigUI = {}
 PBS.ConfigUI = ConfigUI
 
 local PeaversCommons = _G.PeaversCommons
+if not PeaversCommons then return end
 
-function ConfigUI:InitializeOptions()
-    local panel = PeaversCommons.ConfigUIUtils.CreateSettingsPanel(
-        "Settings",
-        "Configuration options for PeaversBestInSlot"
-    )
+local W = PeaversCommons.Widgets
+local C = W.Colors
 
-    local content = panel.content
-    local yPos = panel.yPos
-    local baseSpacing = panel.baseSpacing
-    local sectionSpacing = panel.sectionSpacing
+local INDENT = 25
+local ROW = 26
 
-    yPos = self:CreateGeneralOptions(content, yPos, baseSpacing, sectionSpacing)
-    yPos = self:CreateDisplayOptions(content, yPos, baseSpacing, sectionSpacing)
-    yPos = self:CreateDataOptions(content, yPos, baseSpacing, sectionSpacing)
-
-    panel:UpdateContentHeight(yPos)
-
-    return panel
+--- Build a checkbox bound to a boolean field on PBS.Config.
+--- Returns the next y cursor first so callers can write `y = ConfigCheckbox(...)`
+--- without needing a throwaway variable.
+--- @return number nextY
+--- @return table checkbox
+local function ConfigCheckbox(parent, label, key, y, description)
+    local cb = W:CreateCheckbox(parent, label, {
+        checked = PBS.Config[key],
+        description = description,
+        width = 420,
+        onChange = function(checked)
+            PBS.Config[key] = checked
+            PBS.Config:Save()
+        end,
+    })
+    cb:SetPoint("TOPLEFT", INDENT, y)
+    return y - (description and ROW + 14 or ROW), cb
 end
 
-function ConfigUI:CreateGeneralOptions(content, yPos, baseSpacing, sectionSpacing)
-    local controlIndent = baseSpacing + 15
+function ConfigUI:BuildGeneralPage(parentFrame)
+    local y = -10
 
-    local _, newY = PeaversCommons.ConfigUIUtils.CreateSectionHeader(content, "General Settings", baseSpacing, yPos)
-    yPos = newY - 10
+    local _, newY = W:CreateSectionHeader(parentFrame, "General Settings", INDENT, y)
+    y = newY - 8
 
-    _, newY = PeaversCommons.ConfigUIUtils.CreateCheckbox(
-        content,
-        "PBSEnabledCheckbox",
-        "Enable BiS tooltips",
-        controlIndent, yPos,
-        PBS.Config.enabled,
-        function(checked)
-            PBS.Config.enabled = checked
-            PBS.Config:Save()
-        end
-    )
-    yPos = newY - 8
+    y = ConfigCheckbox(parentFrame, "Enable BiS tooltips", "enabled", y)
 
-    -- BiS list checkboxes
-    local showRaid = PBS.Config.contentType == "both" or PBS.Config.contentType == "raid"
-    local showDungeon = PBS.Config.contentType == "both" or PBS.Config.contentType == "dungeon"
+    _, newY = W:CreateSectionHeader(parentFrame, "Content Types", INDENT, y - 6)
+    y = newY - 8
 
+    -- Raid and dungeon are two checkboxes over a single tri-state config value,
+    -- and at least one must stay selected — unchecking the last one re-checks both.
     local raidCheckbox, dungeonCheckbox
 
     local function UpdateContentType()
@@ -61,164 +57,108 @@ function ConfigUI:CreateGeneralOptions(content, yPos, baseSpacing, sectionSpacin
         elseif dungeonChecked then
             PBS.Config.contentType = "dungeon"
         else
-            -- Prevent unchecking both - re-check the one that was just unchecked
             PBS.Config.contentType = "both"
+            -- SetChecked updates the visual without re-firing onChange, so this
+            -- cannot recurse.
             raidCheckbox:SetChecked(true)
             dungeonCheckbox:SetChecked(true)
         end
         PBS.Config:Save()
     end
 
-    raidCheckbox, newY = PeaversCommons.ConfigUIUtils.CreateCheckbox(
-        content,
-        "PBSShowRaidBiSCheckbox",
-        "Show best in slot items for raid content",
-        controlIndent, yPos,
-        showRaid,
-        UpdateContentType
-    )
-    yPos = newY - 8
+    local contentType = PBS.Config.contentType
+    raidCheckbox = W:CreateCheckbox(parentFrame, "Show best in slot items for raid content", {
+        checked = contentType == "both" or contentType == "raid",
+        width = 420,
+        onChange = UpdateContentType,
+    })
+    raidCheckbox:SetPoint("TOPLEFT", INDENT, y)
+    y = y - ROW
 
-    dungeonCheckbox, newY = PeaversCommons.ConfigUIUtils.CreateCheckbox(
-        content,
-        "PBSShowDungeonBiSCheckbox",
-        "Show best in slot items for mythic+ content",
-        controlIndent, yPos,
-        showDungeon,
-        UpdateContentType
-    )
-    yPos = newY - 15
+    dungeonCheckbox = W:CreateCheckbox(parentFrame, "Show best in slot items for mythic+ content", {
+        checked = contentType == "both" or contentType == "dungeon",
+        width = 420,
+        onChange = UpdateContentType,
+    })
+    dungeonCheckbox:SetPoint("TOPLEFT", INDENT, y)
+    y = y - ROW
 
-    return yPos
+    parentFrame:SetHeight(math.abs(y) + 30)
 end
 
-function ConfigUI:CreateDisplayOptions(content, yPos, baseSpacing, sectionSpacing)
-    local controlIndent = baseSpacing + 15
+function ConfigUI:BuildDisplayPage(parentFrame)
+    local y = -10
 
-    local _, newY = PeaversCommons.ConfigUIUtils.CreateSeparator(content, baseSpacing, yPos)
-    yPos = newY - 15
+    local _, newY = W:CreateSectionHeader(parentFrame, "Display Options", INDENT, y)
+    y = newY - 8
 
-    _, newY = PeaversCommons.ConfigUIUtils.CreateSectionHeader(content, "Display Options", baseSpacing, yPos)
-    yPos = newY - 10
+    local options = {
+        { label = "Show drop source (boss/dungeon name)", key = "showDropSource" },
+        { label = "Show priority indicator (BiS vs Alternative)", key = "showPriority" },
+        { label = "Show if item is BiS for other specs", key = "showOtherSpecs" },
+        { label = "Compact mode (shorter text)", key = "compactMode" },
+    }
 
-    _, newY = PeaversCommons.ConfigUIUtils.CreateCheckbox(
-        content,
-        "PBSShowDropSourceCheckbox",
-        "Show drop source (boss/dungeon name)",
-        controlIndent, yPos,
-        PBS.Config.showDropSource,
-        function(checked)
-            PBS.Config.showDropSource = checked
-            PBS.Config:Save()
-        end
-    )
-    yPos = newY - 8
+    for _, opt in ipairs(options) do
+        y = ConfigCheckbox(parentFrame, opt.label, opt.key, y)
+    end
 
-    _, newY = PeaversCommons.ConfigUIUtils.CreateCheckbox(
-        content,
-        "PBSShowPriorityCheckbox",
-        "Show priority indicator (BiS vs Alternative)",
-        controlIndent, yPos,
-        PBS.Config.showPriority,
-        function(checked)
-            PBS.Config.showPriority = checked
-            PBS.Config:Save()
-        end
-    )
-    yPos = newY - 8
-
-    _, newY = PeaversCommons.ConfigUIUtils.CreateCheckbox(
-        content,
-        "PBSShowOtherSpecsCheckbox",
-        "Show if item is BiS for other specs",
-        controlIndent, yPos,
-        PBS.Config.showOtherSpecs,
-        function(checked)
-            PBS.Config.showOtherSpecs = checked
-            PBS.Config:Save()
-        end
-    )
-    yPos = newY - 8
-
-    _, newY = PeaversCommons.ConfigUIUtils.CreateCheckbox(
-        content,
-        "PBSCompactModeCheckbox",
-        "Compact mode (shorter text)",
-        controlIndent, yPos,
-        PBS.Config.compactMode,
-        function(checked)
-            PBS.Config.compactMode = checked
-            PBS.Config:Save()
-        end
-    )
-    yPos = newY - 15
-
-    return yPos
+    parentFrame:SetHeight(math.abs(y) + 30)
 end
 
-function ConfigUI:CreateDataOptions(content, yPos, baseSpacing, sectionSpacing)
-    local controlIndent = baseSpacing + 15
+function ConfigUI:BuildDataPage(parentFrame)
+    local y = -10
 
-    local _, newY = PeaversCommons.ConfigUIUtils.CreateSeparator(content, baseSpacing, yPos)
-    yPos = newY - 15
+    local _, newY = W:CreateSectionHeader(parentFrame, "Data Source", INDENT, y)
+    y = newY - 8
 
-    _, newY = PeaversCommons.ConfigUIUtils.CreateSectionHeader(content, "Data Source", baseSpacing, yPos)
-    yPos = newY - 10
-
-    -- Check if PeaversBestInSlotData is available
     local BiSData = _G.PeaversBestInSlotData
     if BiSData and BiSData.API then
         local updates = BiSData.API.GetLastUpdate()
 
-        if updates then
-            for source, contentTypes in pairs(updates) do
-                local sourceLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-                sourceLabel:SetPoint("TOPLEFT", controlIndent, yPos)
-                sourceLabel:SetText(source:sub(1, 1):upper() .. source:sub(2) .. ":")
-                sourceLabel:SetTextColor(1, 0.82, 0)
+        for source, contentTypes in pairs(updates or {}) do
+            local label = W:CreateLabel(parentFrame,
+                source:sub(1, 1):upper() .. source:sub(2), { color = C.textSec })
+            label:SetPoint("TOPLEFT", INDENT, y)
 
-                local updateText = content:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-                updateText:SetPoint("TOPLEFT", sourceLabel, "TOPRIGHT", 10, 0)
-
-                local updateTimes = {}
-                for contentType, timestamp in pairs(contentTypes) do
-                    if timestamp then
-                        table.insert(updateTimes, contentType .. ": " .. timestamp)
-                    end
+            local updateTimes = {}
+            for contentType, timestamp in pairs(contentTypes) do
+                if timestamp then
+                    table.insert(updateTimes, contentType .. ": " .. timestamp)
                 end
-                updateText:SetText(table.concat(updateTimes, ", "))
-
-                yPos = yPos - 20
             end
+
+            local value = W:CreateLabel(parentFrame, table.concat(updateTimes, ", "), { color = C.text })
+            value:SetPoint("TOPLEFT", INDENT + 110, y)
+
+            y = y - 22
         end
     else
-        local errorText = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-        errorText:SetPoint("TOPLEFT", controlIndent, yPos)
-        errorText:SetText("PeaversBestInSlotData not available")
-        errorText:SetTextColor(1, 0, 0)
-        yPos = yPos - 20
+        local err = W:CreateLabel(parentFrame,
+            "PeaversBestInSlotData not available", { color = C.danger })
+        err:SetPoint("TOPLEFT", INDENT, y)
+        y = y - 22
     end
 
-    yPos = yPos - 15
-
-    return yPos
+    parentFrame:SetHeight(math.abs(y) + 30)
 end
 
+function ConfigUI:GetPages()
+    return {
+        -- First entry renders leftmost and is the default-selected tab
+        { key = "general", label = "General", builder = function(f) ConfigUI:BuildGeneralPage(f) end },
+        { key = "display", label = "Display", builder = function(f) ConfigUI:BuildDisplayPage(f) end },
+        { key = "data", label = "Data", builder = function(f) ConfigUI:BuildDataPage(f) end },
+    }
+end
+
+-- Legacy single-panel path, kept for the older ConfigRegistry `buildPanel` contract.
 function ConfigUI:BuildIntoFrame(parentFrame)
-    local yPos = 0
-    local baseSpacing = 25
-    local sectionSpacing = 40
-
-    yPos = self:CreateGeneralOptions(parentFrame, yPos, baseSpacing, sectionSpacing)
-    yPos = self:CreateDisplayOptions(parentFrame, yPos, baseSpacing, sectionSpacing)
-    yPos = self:CreateDataOptions(parentFrame, yPos, baseSpacing, sectionSpacing)
-
-    parentFrame:SetHeight(math.abs(yPos) + 50)
+    self:BuildGeneralPage(parentFrame)
     return parentFrame
 end
 
 function ConfigUI:Initialize()
-    self.panel = self:InitializeOptions()
 end
 
 function ConfigUI:Open()
