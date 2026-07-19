@@ -143,9 +143,33 @@ function ConfigUI:BuildDataPage(parentFrame)
     parentFrame:SetHeight(math.abs(y) + 30)
 end
 
+function ConfigUI:BuildInfoPage(parentFrame)
+    PeaversCommons.ConfigUIUtils.BuildInfoPage(parentFrame, "Best In Slot", {
+        "Shows Best-in-Slot information directly on item tooltips, sourced from " ..
+            "wowcompare.io's rankings for your class and spec. Covers both Raid and " ..
+            "Mythic+ gear, including the drop source.",
+        { command = "/pbs", desc = "open the configuration panel" },
+        { command = "/pbs raid", desc = "switch to Raid BiS view" },
+        { command = "/pbs dungeon", desc = "switch to Mythic+ BiS view" },
+        { command = "/pbs both", desc = "show Raid and Mythic+ together" },
+        { command = "/pbs toggle", desc = "turn the tooltip lines on or off" },
+
+        { header = "Reading the tooltip" },
+        "Green text marks an item that is your primary Best in Slot; gold text " ..
+            "marks a strong alternative. The boss or dungeon it drops from is " ..
+            "listed alongside, and optionally which other specs want it.",
+
+        { header = "Where the data comes from" },
+        "Rankings ship in the PeaversBestInSlotData companion addon and are " ..
+            "refreshed automatically with updates, so the tooltips stay current " ..
+            "without any manual imports.",
+    })
+end
+
 function ConfigUI:GetPages()
     return {
         -- First entry renders leftmost and is the default-selected tab
+        { key = "info", label = "Information", builder = function(f) ConfigUI:BuildInfoPage(f) end },
         { key = "general", label = "General", builder = function(f) ConfigUI:BuildGeneralPage(f) end },
         { key = "display", label = "Display", builder = function(f) ConfigUI:BuildDisplayPage(f) end },
         { key = "data", label = "Data", builder = function(f) ConfigUI:BuildDataPage(f) end },
