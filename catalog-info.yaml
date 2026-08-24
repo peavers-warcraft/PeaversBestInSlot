@@ -2,7 +2,7 @@ apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
   name: PeaversBestInSlot
-  description: "A World of Warcraft addon that displays Best-in-Slot item information in tooltips, sourced from wowcompare.io."
+  description: "A World of Warcraft addon that displays Best-in-Slot item information in tooltips."
   annotations:
     github.com/project-slug: peavers-warcraft/PeaversBestInSlot
 spec:

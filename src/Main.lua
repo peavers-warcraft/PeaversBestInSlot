@@ -12,21 +12,6 @@ PeaversCommons.SlashCommands:Register(addonName, "pbs", {
     default = function()
         PBS.ConfigUI:Open()
     end,
-    raid = function()
-        PBS.Config.contentType = "raid"
-        PBS.Config:Save()
-        Utils.Print(PBS, "Now showing best in slot items for raid content")
-    end,
-    dungeon = function()
-        PBS.Config.contentType = "dungeon"
-        PBS.Config:Save()
-        Utils.Print(PBS, "Now showing best in slot items for mythic+ content")
-    end,
-    both = function()
-        PBS.Config.contentType = "both"
-        PBS.Config:Save()
-        Utils.Print(PBS, "Now showing best in slot items for all content")
-    end,
     toggle = function()
         PBS.Config.enabled = not PBS.Config.enabled
         PBS.Config:Save()
@@ -38,9 +23,6 @@ PeaversCommons.SlashCommands:Register(addonName, "pbs", {
     help = function()
         Utils.Print(PBS, "Commands:")
         print("  /pbs - Open configuration")
-        print("  /pbs raid - Show raid items only")
-        print("  /pbs dungeon - Show mythic+ items only")
-        print("  /pbs both - Show all items")
         print("  /pbs toggle - Toggle tooltips")
     end
 })

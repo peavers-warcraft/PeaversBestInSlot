@@ -2,16 +2,16 @@
 
 [![AddonSentry](https://addonsentry.io/api/public/repos/peavers-warcraft/PeaversBestInSlot/badge.svg)](https://addonsentry.io/dashboard/peavers-warcraft/PeaversBestInSlot)
 
-A World of Warcraft addon that displays Best-in-Slot item information in tooltips, sourced from wowcompare.io.
+A World of Warcraft addon that displays Best-in-Slot item information in tooltips.
 
 ## Features
 
 <!-- peavers:features -->
 - Shows BiS status directly on item tooltips
-- Supports both Raid and Mythic+ content
 - Displays drop source (boss/dungeon name)
+- Ranks the alternatives when the first pick is out of reach
+- Names the build a piece belongs to where a spec has more than one
 - Shows if items are BiS for other specs
-- Easy toggle between Raid and M+ BiS views
 - Fully configurable display options
 <!-- /peavers:features -->
 
@@ -21,14 +21,11 @@ A World of Warcraft addon that displays Best-in-Slot item information in tooltip
 ### Slash Commands
 
 - `/pbs` - Open configuration panel
-- `/pbs raid` - Switch to Raid BiS view
-- `/pbs dungeon` - Switch to Mythic+ BiS view
 - `/pbs toggle` - Toggle BiS tooltips on/off
 - `/pbs debug` - Toggle debug mode
 
 ### Configuration Options
 
-- **Content Type**: Choose between Raid or Mythic+ BiS
 - **Show Drop Source**: Display where items drop from
 - **Show Priority**: Indicate if item is primary BiS or alternative
 - **Show Other Specs**: Display if items are BiS for other specs
