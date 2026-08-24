@@ -39,50 +39,6 @@ function ConfigUI:BuildGeneralPage(parentFrame)
 
     y = ConfigCheckbox(parentFrame, "Enable BiS tooltips", "enabled", y)
 
-    _, newY = W:CreateSectionHeader(parentFrame, "Content Types", INDENT, y - 6)
-    y = newY - 8
-
-    -- Raid and dungeon are two checkboxes over a single tri-state config value,
-    -- and at least one must stay selected — unchecking the last one re-checks both.
-    local raidCheckbox, dungeonCheckbox
-
-    local function UpdateContentType()
-        local raidChecked = raidCheckbox:GetChecked()
-        local dungeonChecked = dungeonCheckbox:GetChecked()
-
-        if raidChecked and dungeonChecked then
-            PBS.Config.contentType = "both"
-        elseif raidChecked then
-            PBS.Config.contentType = "raid"
-        elseif dungeonChecked then
-            PBS.Config.contentType = "dungeon"
-        else
-            PBS.Config.contentType = "both"
-            -- SetChecked updates the visual without re-firing onChange, so this
-            -- cannot recurse.
-            raidCheckbox:SetChecked(true)
-            dungeonCheckbox:SetChecked(true)
-        end
-        PBS.Config:Save()
-    end
-
-    local contentType = PBS.Config.contentType
-    raidCheckbox = W:CreateCheckbox(parentFrame, "Show best in slot items for raid content", {
-        checked = contentType == "both" or contentType == "raid",
-        width = 420,
-        onChange = UpdateContentType,
-    })
-    raidCheckbox:SetPoint("TOPLEFT", INDENT, y)
-    y = y - ROW
-
-    dungeonCheckbox = W:CreateCheckbox(parentFrame, "Show best in slot items for mythic+ content", {
-        checked = contentType == "both" or contentType == "dungeon",
-        width = 420,
-        onChange = UpdateContentType,
-    })
-    dungeonCheckbox:SetPoint("TOPLEFT", INDENT, y)
-    y = y - ROW
-
     parentFrame:SetHeight(math.abs(y) + 30)
 end
 
@@ -114,25 +70,14 @@ function ConfigUI:BuildDataPage(parentFrame)
 
     local BiSData = _G.PeaversBestInSlotData
     if BiSData and BiSData.API then
-        local updates = BiSData.API.GetLastUpdate()
+        local label = W:CreateLabel(parentFrame, "Last updated", { color = C.textSec })
+        label:SetPoint("TOPLEFT", INDENT, y)
 
-        for source, contentTypes in pairs(updates or {}) do
-            local label = W:CreateLabel(parentFrame,
-                source:sub(1, 1):upper() .. source:sub(2), { color = C.textSec })
-            label:SetPoint("TOPLEFT", INDENT, y)
+        local value = W:CreateLabel(parentFrame,
+            BiSData.API.GetLastUpdate() or "no data loaded", { color = C.text })
+        value:SetPoint("TOPLEFT", INDENT + 110, y)
 
-            local updateTimes = {}
-            for contentType, timestamp in pairs(contentTypes) do
-                if timestamp then
-                    table.insert(updateTimes, contentType .. ": " .. timestamp)
-                end
-            end
-
-            local value = W:CreateLabel(parentFrame, table.concat(updateTimes, ", "), { color = C.text })
-            value:SetPoint("TOPLEFT", INDENT + 110, y)
-
-            y = y - 22
-        end
+        y = y - 22
     else
         local err = W:CreateLabel(parentFrame,
             "PeaversBestInSlotData not available", { color = C.danger })
@@ -145,13 +90,9 @@ end
 
 function ConfigUI:BuildInfoPage(parentFrame)
     PeaversCommons.ConfigUIUtils.BuildInfoPage(parentFrame, "Best In Slot", {
-        "Shows Best-in-Slot information directly on item tooltips, sourced from " ..
-            "wowcompare.io's rankings for your class and spec. Covers both Raid and " ..
-            "Mythic+ gear, including the drop source.",
+        "Shows Best-in-Slot information directly on item tooltips for your class " ..
+            "and spec, including where each piece drops.",
         { command = "/pbs", desc = "open the configuration panel" },
-        { command = "/pbs raid", desc = "switch to Raid BiS view" },
-        { command = "/pbs dungeon", desc = "switch to Mythic+ BiS view" },
-        { command = "/pbs both", desc = "show Raid and Mythic+ together" },
         { command = "/pbs toggle", desc = "turn the tooltip lines on or off" },
 
         { header = "Reading the tooltip" },
